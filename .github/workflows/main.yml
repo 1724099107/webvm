@@ -1,43 +1,40 @@
-# WebVM 自动化构建 & 部署工作流
+# WebVM 自动化构建 & 部署工作流（优化版）
 name: WebVM Build & Deploy
 
-# 触发条件：推送到 main 分支 / 手动触发
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # 允许手动运行
+  workflow_dispatch:
 
-# 任务
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # 允许部署到 GitHub Pages
+      contents: write
 
     steps:
-      # 1. 拉取代码
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. 设置 Node.js（WebVM 依赖 Node 环境构建）
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20  # WebVM 推荐版本
+          node-version: 20
           cache: 'npm'
 
-      # 3. 安装依赖
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install
+          npm audit fix  # 自动修复安全漏洞
+        continue-on-error: false  # 安装失败立即终止
 
-      # 4. 构建 WebVM 项目（生成静态文件）
       - name: Build WebVM
-        run: npm run build  # 标准构建命令，适配 WebVM
+        run: npm run build
+        continue-on-error: false  # 构建失败立即终止
 
-      # 5. 部署到 GitHub Pages（自动托管 WebVM）
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist  # WebVM 构建输出目录（默认 dist）
+          publish_dir: ./dist
           publish_branch: gh-pages
